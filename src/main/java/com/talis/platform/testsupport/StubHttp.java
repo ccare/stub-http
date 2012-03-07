@@ -6,14 +6,12 @@ import java.net.ServerSocket;
 import java.util.LinkedList;
 import java.util.Queue;
 
-
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.junit.rules.ExternalResource;
 import org.mortbay.jetty.Server;
-import org.mortbay.jetty.handler.AbstractHandler;
 
 public class StubHttp extends ExternalResource {
 	
