@@ -19,56 +19,57 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.mortbay.jetty.handler.AbstractHandler;
-
 public class UnorderedHandler extends VerifyableHandler {
-	private final Map<MethodPath, StubCallDefn> callStack;	
-	
-	public UnorderedHandler(Queue<StubCallDefn> callStack) {
+	private final Map<MethodPath, StubCallDefn> callStack;
+
+	public UnorderedHandler(final Queue<StubCallDefn> callStack) {
 		this.callStack = new HashMap<MethodPath, StubCallDefn>();
 		for (StubCallDefn defn : callStack) {
-			String expectedMethod = (String) defn.getExpectedMethod();
-			String expectedPath = (String) defn.getExpectedPath();
-			this.callStack.put(new MethodPath(expectedMethod, expectedPath), defn);
+			String expectedMethod = defn.getExpectedMethod();
+			String expectedPath = defn.getExpectedPath();
+			this.callStack.put(new MethodPath(expectedMethod, expectedPath),
+					defn);
 		}
 	}
 
 	@Override
-	protected StubCallDefn getExpectedCallDefn(String target,
-			HttpServletRequest req) {
+	protected StubCallDefn getExpectedCallDefn(final String target,
+			final HttpServletRequest req) {
 		MethodPath methodPathPair = new MethodPath(req.getMethod(), target);
-		StubCallDefn defn = callStack.remove(methodPathPair);
-		return defn;
+		return callStack.remove(methodPathPair);
 	}
 
-	public void verify(boolean strictMode) {
+	@Override
+	public void verify(final boolean strictMode) {
 		if (strictMode) {
 			int outstandingCalls = callStack.size();
-			for (Map.Entry<MethodPath, StubCallDefn> item : callStack.entrySet()) {
+			for (Map.Entry<MethodPath, StubCallDefn> item : callStack
+					.entrySet()) {
 				StubCallDefn d = item.getValue();
 				assertionLog.append("Expected, but didn't get: ");
-				assertionLog.append(String.format("%s %s", d.getExpectedMethod(), d.getExpectedPath()));
+				assertionLog.append(String.format("%s %s",
+						d.getExpectedMethod(), d.getExpectedPath()));
 				assertionLog.append("\n");
 			}
-			
-			assertTrue("Stub server did not get correct set of calls: \n" + assertionLog.toString(), isOk.get());
-			assertEquals(" The callstack was not zero at end of test, not all expected requests were made: \n" + assertionLog.toString(), 0, outstandingCalls);
-		}		
+
+			assertTrue("Stub server did not get correct set of calls: \n"
+					+ assertionLog.toString(), isOk.get());
+			assertEquals("The callstack was not zero at end of test, not all "
+					+ "expected requests seen: \n" + assertionLog.toString(),
+					0, outstandingCalls);
+		}
 	}
 }
 
 class MethodPath {
 	public final String method;
 	public final String path;
-	
+
 	public MethodPath(String method, String path) {
 		this.method = method;
 		this.path = path;
@@ -104,6 +105,5 @@ class MethodPath {
 			return false;
 		return true;
 	}
-	
-	
+
 }

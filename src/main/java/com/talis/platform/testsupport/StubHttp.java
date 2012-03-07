@@ -15,13 +15,11 @@
  */
 package com.talis.platform.testsupport;
 
-
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
@@ -29,48 +27,54 @@ import org.junit.rules.ExternalResource;
 import org.mortbay.jetty.Server;
 
 public class StubHttp extends ExternalResource {
-	
-	private int port;
-    private Server server;
-    private VerifyableHandler globalHandler;
+
+	private final int port;
 
 	Queue<StubCallDefn> defns = new LinkedList<StubCallDefn>();
 	private boolean ordered = true;
 	private boolean strict = true;
-    
-    public StubHttp() {
-		this.port = findFreePort();    	
-    }
-    
-    public StubHttp(int port) {
-		this.port = port;    	
-    }
-    
+	private VerifyableHandler globalHandler;
+	private Server server;
+
+	public StubHttp() {
+		this.port = findFreePort();
+	}
+
+	public StubHttp(int port) {
+		this.port = port;
+	}
+
 	@Override
 	public void before() throws Throwable {
 		if (server != null) {
 			after();
 		}
-        server = new Server(port);
-        server.start();
-        waitUntilUp();
+		server = new Server(port);
+		server.start();
+		waitUntilUp();
 	}
 
 	@Override
 	public void after() {
-        try {
+		try {
 			stop();
-	        server.join();
+			server.join();
 		} catch (Exception e) {
-			throw new RuntimeException("Runtime exception while tearing down StubHttp", e);
+			String msg = "Runtime exception while tearing down StubHttp";
+			throw new RuntimeException(msg, e);
 		}
-        server = null;
+		server = null;
 		verify();
 	}
 
-	public void stop() throws Exception {
-		server.stop();
-		waitUntilDown();
+	public void stop() {
+		try {
+			server.stop();
+			waitUntilDown();
+		} catch (Exception e) {
+			String msg = "Exception while stopping jetty";
+			throw new RuntimeException(msg, e);
+		}
 	}
 
 	public int getPort() {
@@ -80,47 +84,52 @@ public class StubHttp extends ExternalResource {
 	public String getBaseUrl() {
 		return String.format("http://localhost:%d/", getPort());
 	}
-	
-	public void reset() throws Exception {
+
+	public void reset() {
 		server.removeHandler(globalHandler);
 		globalHandler = null;
 		stop();
 		start();
 	}
 
-	public void waitUntilUp() throws InterruptedException {		
+	@SuppressWarnings("PMD.EmptyCatchBlock")
+	public void waitUntilUp() throws InterruptedException {
 		// Wait until jetty says it's ready
-		while (! server.isStarted()) {
+		while (!server.isStarted()) {
 			Thread.sleep(100);
-		}		
+		}
 		// Wait until we start receiving http responses
 		boolean responding = false;
 		HttpClient client = new DefaultHttpClient();
-		while(!responding) {
+		while (!responding) {
 			HttpGet getRequest = new HttpGet(getBaseUrl());
 			try {
-				final HttpResponse resp = client.execute(getRequest);
+				client.execute(getRequest);
 				responding = true;
 			} catch (Exception e) {
-				e.printStackTrace();
+				// Ok to get an exception here
 			}
 			Thread.sleep(100);
-		}		
-	}
-	
-	public void waitUntilDown() throws InterruptedException {		
-		// Wait until jetty says it's stopped
-		while (! server.isStopped()) {
-			Thread.sleep(100);
-		}	
+		}
 	}
 
-	public void start() throws Exception {
-        server.start();
-        waitUntilUp();		
+	public void waitUntilDown() throws InterruptedException {
+		// Wait until jetty says it's stopped
+		while (!server.isStopped()) {
+			Thread.sleep(100);
+		}
 	}
-		
-	
+
+	public void start() {
+		try {
+			server.start();
+			waitUntilUp();
+		} catch (Exception e) {
+			String msg = "Exception while starting stub HTTP server";
+			throw new RuntimeException(msg, e);
+		}
+	}
+
 	public static int findFreePort() {
 		ServerSocket server;
 		try {
@@ -129,11 +138,12 @@ public class StubHttp extends ExternalResource {
 			server.close();
 			return port;
 		} catch (IOException e) {
-			throw new RuntimeException("IOException while trying to find a free port", e);
+			throw new RuntimeException(
+					"IOException while trying to find a free port", e);
 		}
 	}
-	
-	public StubCallDefn expect(String method, String path) {
+
+	public StubCallDefn expect(final String method, final String path) {
 		StubCallDefn callDefn = new StubCallDefn(method, path);
 		defns.add(callDefn);
 		return callDefn;
@@ -155,14 +165,21 @@ public class StubHttp extends ExternalResource {
 		}
 	}
 
-	public void verifyAndTeardown() throws Throwable {
+	public void verifyAndTeardown() {
 		try {
 			this.verify();
-		} catch (Throwable t) {
-			throw t;
 		} finally {
+			resetAndTeardown();
+		}
+	}
+
+	private void resetAndTeardown() {
+		try {
 			this.reset();
 			this.after();
+		} catch (Exception e) {
+			String msg = "Exception while resetting and tearing down stubHttp";
+			throw new RuntimeException(msg, e);
 		}
 	}
 
@@ -171,6 +188,6 @@ public class StubHttp extends ExternalResource {
 	}
 
 	public void allowCallsToNotHappen() {
-		this.strict  = false;
+		this.strict = false;
 	}
 }

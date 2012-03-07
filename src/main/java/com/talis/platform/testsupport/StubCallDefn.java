@@ -35,8 +35,8 @@ public class StubCallDefn {
 	private String returnType = "text/plain";
 	private final Map<String, String> headers = new HashMap<String, String>();
 	private final Map<String, String> returnHeaders = new HashMap<String, String>();
-			
-	public StubCallDefn(String method, String path) {
+
+	public StubCallDefn(final String method, final String path) {
 		this.method = method;
 		this.path = path;
 	}
@@ -73,58 +73,70 @@ public class StubCallDefn {
 		return path;
 	}
 
-	public StubCallDefn andReturn(int status) {
+	public StubCallDefn andReturn(final int status) {
 		this.returnStatus = status;
 		this.returnEntity = null;
-		return this;		
+		return this;
 	}
 
-	public StubCallDefn andReturn(int status, byte[] entity) {
+	public StubCallDefn andReturn(final int status, 
+			final byte[] entity) {
 		this.returnStatus = status;
 		this.returnEntity = entity;
 		return this;
 	}
 
-	public StubCallDefn andReturn(int status, String entity) {
+	public StubCallDefn andReturn(final int status, 
+			final String entity) {
 		return andReturn(status, entity.getBytes());
 	}
 
-	public StubCallDefn andReturn(int status, File entity) throws IOException {
+	public StubCallDefn andReturn(final int status, 
+			final File entity) throws IOException {
 		return andReturn(status, FileUtils.readFileToByteArray(entity));
 	}
 
-	public StubCallDefn andReturn(int status, InputStream entity) throws IOException {
+	public StubCallDefn andReturn(final int status, final InputStream entity)
+			throws IOException {
 		return andReturn(status, IOUtils.toByteArray(entity));
 	}
 
-	public StubCallDefn andReturn(int status, byte[] entity, String type) {
+	public StubCallDefn andReturn(final int status, 
+			final byte[] entity, 
+			final String type) {
 		this.returnStatus = status;
 		this.returnEntity = entity;
 		this.returnType = type;
 		return this;
 	}
 
-	public StubCallDefn andReturn(int status, String entity, String type) {
+	public StubCallDefn andReturn(final int status, 
+			final String entity, 
+			final String type) {
 		return andReturn(status, entity.getBytes(), type);
 	}
 
-	public StubCallDefn andReturn(int status, File entity, String type) throws IOException {
+	public StubCallDefn andReturn(final int status, 
+			final File entity, 
+			final String type)
+			throws IOException {
 		return andReturn(status, FileUtils.readFileToByteArray(entity), type);
 	}
-	
-	public StubCallDefn withHeader(String header, String value) {
+
+	public StubCallDefn withHeader(final String header, 
+			final String value) {
 		headers.put(header, value);
 		return this;
 	}
 
-	public StubCallDefn withEntity(String entity) {
+	public StubCallDefn withEntity(final String entity) {
 		this.entity = entity;
 		return this;
 	}
 
-	public StubCallDefn withEntity(File entity) throws IOException {
+	public StubCallDefn withEntity(final File entity) throws IOException {
 		this.entity = FileUtils.readFileToString(entity);
 		return this;
 	}
-	
+
 }
