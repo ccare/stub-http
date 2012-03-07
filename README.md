@@ -31,9 +31,8 @@ public class MyTest {
     @Test
     public void testCodeMakesHEADRequestFollowedByGET() {
         File testZipFileLocation = new File(...);
-    
         stubHttp.expect("HEAD", "/foo.zip").andReturn(200);
-	stubHttp.expect("GET", "/foo.zip").andReturn(200, );
+        stubHttp.expect("GET", "/foo.zip").andReturn(200);
         stubHttp.replay()
         
         // ...test here...        
