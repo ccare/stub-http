@@ -6,6 +6,7 @@
   <packaging>jar</packaging>
 
   <name>HTTP Stub</name>
+    <inceptionYear>2012</inceptionYear>
   <description>A simple stub http server for writing unit and acceptance tests with real httpclients</description>
   <url>http://maven.apache.org</url>
 

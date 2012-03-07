@@ -139,4 +139,8 @@ public class StubCallDefn {
 		return this;
 	}
 
+	public void returnHeader(String header, String value) {
+		returnHeaders.put(header, value);
+	}
+
 }

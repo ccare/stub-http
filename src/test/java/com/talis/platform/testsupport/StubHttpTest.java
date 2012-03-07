@@ -17,8 +17,12 @@ package com.talis.platform.testsupport;
 
 import static org.junit.Assert.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -27,6 +31,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.conn.HttpHostConnectException;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
@@ -50,12 +55,30 @@ public class StubHttpTest {
 		stubHttp.replay();		
 		stubHttp.verify();
 	}
+	
+	@Test
+	public void callingBeforeAgainDoesntFail() throws Throwable {
+		 stubHttp.before();
+	}
+	
+	@Test
+	public void testManualStartAndStop() throws Throwable {
+		stubHttp.stop();
+		try {
+			httpClient.execute(new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+			fail("Expected a ConnectionException");
+		} catch (HttpHostConnectException e) {
+			// expected this to happen
+		}
+		stubHttp.start();
+		httpClient.execute(new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+	}
 		
 	@Test
 	public void noCallsExpectedButCallMade() throws Exception {
 		stubHttp.replay();		
 		
-		HttpResponse execute = httpClient.execute(new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+		httpClient.execute(new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
 
 		assertTestFailureWithErrorPrefix("Stub server did not get correct set of calls:");
 	}
@@ -87,6 +110,61 @@ public class StubHttpTest {
 	}
 		
 	@Test
+	public void expectedOneGetReturning200WithStreamEntity() throws Exception {
+		String expectedEntity = "My data...";
+		ByteArrayInputStream entity = new ByteArrayInputStream(expectedEntity.getBytes());
+		stubHttp.expect("GET", "/my/path").andReturn(200, entity);
+		stubHttp.replay();
+		
+		assertExpectedStatusAndEntity(expectedEntity, 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+		
+		stubHttp.verify();
+	}
+		
+	@Test
+	public void expectedOneGetReturning200WithFileEntity() throws Exception {
+		URL resource = StubHttpTest.class.getResource("/entity.txt");
+		File entity = new File(resource.toURI());
+		
+		byte[] expected = FileUtils.readFileToByteArray(entity);
+		
+		stubHttp.expect("GET", "/my/path").andReturn(200, entity);
+		stubHttp.replay();
+		
+		assertExpectedStatusAndEntity(new String(expected), 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+		
+		stubHttp.verify();
+	}
+		
+	@Test
+	public void expectedOneGetReturning200WithNoEntity() throws Exception {
+		stubHttp.expect("GET", "/my/path").andReturn(200);
+		stubHttp.replay();
+		
+		assertExpectedStatusAndEntity("", 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+		
+		stubHttp.verify();
+	}
+	
+
+	
+	@Test
+	public void expectedOneGetReturning200WithADefinedHeader() throws Exception {
+		stubHttp.expect("GET", "/my/path").andReturn(200).returnHeader("X-foo", "bar");
+		stubHttp.replay();
+		
+		HttpResponse response = assertExpectedStatusAndEntity("", 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"));
+		
+		assertEquals("bar", response.getFirstHeader("X-foo").getValue());
+		
+		stubHttp.verify();
+	}
+		
+	@Test
 	public void expectedOnePutReturning200() throws Exception {
 		String expectedEntity = "My data...";
 		stubHttp.expect("PUT", "/my/path").andReturn(200, expectedEntity);
@@ -94,6 +172,49 @@ public class StubHttpTest {
 		
 		assertExpectedStatusAndEntity(expectedEntity, 200, 
 				new HttpPut(stubHttp.getBaseUrl() + "/my/path"));
+		
+		stubHttp.verify();
+	}
+	
+	@Test
+	public void expectedOneGetReturning200WithContentType() throws Exception {
+		String expectedEntity = "My data...";
+		stubHttp.expect("GET", "/my/path").andReturn(200, expectedEntity.getBytes(), "text/plain+special");
+		stubHttp.replay();
+		
+		assertExpectedStatusEntityAndContentType(expectedEntity, 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"),
+				"text/plain+special");
+		
+		stubHttp.verify();
+	}
+	
+	@Test
+	public void expectedOneGetReturning200WithStringEntityAndContentType() throws Exception {
+		String expectedEntity = "My data...";
+		stubHttp.expect("GET", "/my/path").andReturn(200, expectedEntity, "text/plain+special");
+		stubHttp.replay();
+		
+		assertExpectedStatusEntityAndContentType(expectedEntity, 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"),
+				"text/plain+special");
+		
+		stubHttp.verify();
+	}
+	
+	@Test
+	public void expectedOneGetReturning200WithFileEntityAndContentType() throws Exception {
+		URL resource = StubHttpTest.class.getResource("/entity.txt");
+		File entity = new File(resource.toURI());
+		
+		byte[] expected = FileUtils.readFileToByteArray(entity);
+		
+		stubHttp.expect("GET", "/my/path").andReturn(200, entity, "application/json");
+		stubHttp.replay();
+		
+		assertExpectedStatusEntityAndContentType(new String(expected), 200, 
+				new HttpGet(stubHttp.getBaseUrl() + "/my/path"),
+				"application/json");
 		
 		stubHttp.verify();
 	}
@@ -275,20 +396,98 @@ public class StubHttpTest {
 	}
 		
 	@Test
-	public void expectedOneGetButNoneMade() throws Exception {
+	public void orderDoesntMatterIfSwitchedOff() throws Exception {
+		String expectedEntity = "My data...";
+		stubHttp.allowUnordered();
+		stubHttp.expect("GET", "/my/path1").andReturn(200, expectedEntity);
+		stubHttp.expect("GET", "/my/path2").andReturn(200, expectedEntity);
+		stubHttp.expect("GET", "/my/path3").andReturn(404, expectedEntity);
+		stubHttp.expect("GET", "/my/path4").andReturn(200, expectedEntity);
+		stubHttp.replay();
+		
+		String uri = stubHttp.getBaseUrl() + "/my/path";
+		
+		assertExpectedStatusAndEntity(expectedEntity, 200, new HttpGet(uri + "1"));
+		assertExpectedStatusAndEntity(expectedEntity, 200, new HttpGet(uri + "2"));
+		assertExpectedStatusAndEntity(expectedEntity, 200, new HttpGet(uri + "4"));
+		assertExpectedStatusAndEntity(expectedEntity, 404, new HttpGet(uri + "3"));
+
+		stubHttp.verify();
+	}
+		
+	@Test
+	public void orderDoesntMatterIfSwitchedOffButAllCallsStillNeedToBeMade() throws Exception {
+		String expectedEntity = "My data...";
+		stubHttp.allowUnordered();
+		stubHttp.expect("GET", "/my/path1").andReturn(200, expectedEntity);
+		stubHttp.expect("GET", "/my/path2").andReturn(200, expectedEntity);
+		stubHttp.expect("GET", "/my/path3").andReturn(404, expectedEntity);
+		stubHttp.expect("GET", "/my/path4").andReturn(200, expectedEntity);
+		stubHttp.replay();
+		
+		String uri = stubHttp.getBaseUrl() + "/my/path";
+		
+		assertExpectedStatusAndEntity(expectedEntity, 200, new HttpGet(uri + "1"));
+		assertExpectedStatusAndEntity(expectedEntity, 200, new HttpGet(uri + "2"));
+		assertExpectedStatusAndEntity(expectedEntity, 404, new HttpGet(uri + "3"));
+
+		assertTestFailureWithErrorPrefix("Stub server did not get correct set of calls:");
+	}
+		
+	@Test
+	public void expectedOneGetButNoneMadeIsFailure() throws Exception {
 		stubHttp.expect("GET", "/my/path").andReturn(404, "Not Found");
 		stubHttp.replay();
 		
 		assertTestFailureWithErrorPrefix("Not all expected requests were made");
 	}
+	
 
-	private void assertExpectedStatusAndEntity(String expectedEntity,
+	@Test
+	public void expectedOneGetButNoneMadeIsOkStrictModeDisabled() throws Exception {
+		stubHttp.allowCallsToNotHappen();
+		stubHttp.expect("GET", "/my/path").andReturn(404, "Not Found");
+		stubHttp.replay();
+		
+		assertTestFailureWithErrorPrefix("Not all expected requests were made");
+	}
+	
+	@Test
+	public void canMakeStubBeUnorderedAndNotRequireAllCalls() throws Exception {
+		String expectedEntity = "My data...";
+		stubHttp.allowUnordered();
+		stubHttp.allowCallsToNotHappen();
+		stubHttp.expect("GET", "/my/path1").andReturn(200, expectedEntity);
+		stubHttp.expect("GET", "/my/path2").andReturn(200, expectedEntity);
+		stubHttp.expect("GET", "/my/path3").andReturn(404, expectedEntity);
+		stubHttp.replay();
+		
+		String uri = stubHttp.getBaseUrl() + "/my/path";
+		
+		assertExpectedStatusAndEntity(expectedEntity, 200, new HttpGet(uri + "1"));
+		assertExpectedStatusAndEntity(expectedEntity, 404, new HttpGet(uri + "3"));
+
+		stubHttp.verify();
+	}
+
+	private HttpResponse assertExpectedStatusAndEntity(String expectedEntity,
 			int expectedStatus, HttpRequestBase uri) throws IOException,
 			ClientProtocolException {
-		HttpResponse execute = httpClient.execute(uri);
-		assertEquals(expectedStatus, execute.getStatusLine().getStatusCode());
-		String entity = IOUtils.toString(execute.getEntity().getContent());
+		HttpResponse response = httpClient.execute(uri);
+		assertEquals(expectedStatus, response.getStatusLine().getStatusCode());
+		String entity = IOUtils.toString(response.getEntity().getContent());
 		assertEquals(expectedEntity, entity);
+		return response;
+	}
+	
+	private void assertExpectedStatusEntityAndContentType(String expectedEntity,
+			int expectedStatus, HttpRequestBase uri, String contentType) throws IOException,
+			ClientProtocolException {
+		HttpResponse response = httpClient.execute(uri);
+		assertEquals(expectedStatus, response.getStatusLine().getStatusCode());
+		String entity = IOUtils.toString(response.getEntity().getContent());
+		assertEquals(expectedEntity, entity);
+		assertEquals(contentType, response.getFirstHeader(HttpHeaders.CONTENT_TYPE).getValue());
 	}
 
 	private void assertTestFailureWithErrorPrefix(String errorPrefix) {

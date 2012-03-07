@@ -20,6 +20,8 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.servlet.ServletException;
@@ -67,6 +69,12 @@ public abstract class VerifyableHandler extends AbstractHandler {
 
 			resp.setStatus(defn.getExpectedReturnStatus());
 			resp.setHeader("Content-Type", defn.getExpectedReturnType());
+			Map<String, String> returnHeaders = defn.getReturnHeaders();
+			if (null != returnHeaders) {
+				for (Entry<String, String> header : returnHeaders.entrySet()) {
+					resp.setHeader(header.getKey(), header.getValue());
+				}
+			}
 
 			byte[] expectedReturnEntity = defn.getExpectedReturnEntity();
 			if (expectedReturnEntity != null) {

@@ -37,7 +37,7 @@ public class StubHttp extends ExternalResource {
 	private Server server;
 
 	public StubHttp() {
-		this.port = findFreePort();
+		this(findFreePort());
 	}
 
 	public StubHttp(int port) {
