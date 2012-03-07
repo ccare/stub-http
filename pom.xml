@@ -1,0 +1,104 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <groupId>com.talis.platform</groupId>
+  <artifactId>stub-http</artifactId>
+  <version>0.1-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>HTTP Stub</name>
+  <description>A simple stub http server for writing unit and acceptance tests with real httpclients</description>
+  <url>http://maven.apache.org</url>
+
+  <scm>
+    <developerConnection>scm:git:ssh://git@github.com/talis/stub-http.git</developerConnection>
+    <connection>scm:git:git://github.com/talis/stub-http.git</connection>
+    <url>http://github.com/talis/stub-http</url>
+  </scm>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <dependencies>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.1.1</version>
+    </dependency> 
+
+    <dependency>
+      <groupId>org.mortbay.jetty</groupId>
+      <artifactId>jetty</artifactId>
+      <version>6.1.24</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-lang</groupId>
+      <artifactId>commons-lang</artifactId>
+      <version>2.5</version>
+    </dependency>
+     
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>2.1</version>
+    </dependency>
+    
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.8.2</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.easymock</groupId>
+      <artifactId>easymock</artifactId>
+      <version>3.0</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+ 
+     <build>
+	  <plugins>
+	
+	      <plugin>
+	        <artifactId>maven-compiler-plugin</artifactId>
+	      </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <configuration>
+            <source>1.6</source>
+            <target>1.6</target>
+            <encoding>UTF-8</encoding>
+          </configuration>
+        </plugin>
+               
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-release-plugin</artifactId>
+        <configuration>
+          <remoteTagging>true</remoteTagging>
+          <preparationGoals>clean install</preparationGoals>
+          <autoVersionSubmodules>true</autoVersionSubmodules>
+          <releaseProfiles>perform-release</releaseProfiles>
+        </configuration>
+
+      </plugin>
+      </plugins>
+    </build>
+  
+    <repositories>
+    <repository>
+      <id>talis-internal-repo</id>
+      <url>http://nexus.talisplatform.com/content/groups/internal/</url>
+    </repository>
+    <repository>
+      <id>talis-public-repo</id>
+      <url>http://oss.talisplatform.com/content/groups/public/</url>
+    </repository>
+  </repositories>
+  </project>
