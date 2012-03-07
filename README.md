@@ -1,7 +1,7 @@
 Stub HTTP
 =========
 
-A stub http server for writing unit and acceptance tests. Use it to:
+A stub HTTP server for writing unit and acceptance tests. Use it to:
 
 * Specify a sequence of HTTP interactions and return stub responses
 * Specify expected HTTP methods, headers, and entities
